@@ -10,8 +10,15 @@ Next steps are to plug in MLP and KAN regressors through the same lsmc_price API
 from __future__ import annotations
 
 import argparse
+import os
+import sys
 import time
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
 
 import pandas as pd
 
@@ -25,11 +32,11 @@ from kanop.regression import make_ols_factory
 from kanop.scaling import BasisInputScaler, ScalingMode
 from kanop.simulation import simulate_gbm_paths
 
-ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
 FIGURES = ROOT / "figures"
 RESULTS.mkdir(exist_ok=True)
 FIGURES.mkdir(exist_ok=True)
+PLOT_STEPS = (49, 25, 1)
 
 
 def american_put_result_row(
@@ -62,11 +69,12 @@ def american_put_result_row(
 
 def run_baselines(
     seed: int = 1234,
+    n_paths: int | None = None,
     fit_all_paths: bool = True,
     basis_scaling: ScalingMode = "raw",
     store_fits: bool = True,
 ) -> tuple[pd.DataFrame, dict[str, object], object, object]:
-    cfg = AmericanPutConfig()
+    cfg = AmericanPutConfig(n_paths=n_paths or AmericanPutConfig().n_paths)
     scaler = BasisInputScaler(mode=basis_scaling, s0=cfg.s0, strike=cfg.strike)
     paths, times = simulate_gbm_paths(
         s0=cfg.s0,
@@ -157,12 +165,14 @@ def run_baselines(
 
 def main(
     seed: int = 1234,
+    n_paths: int | None = None,
     fit_all_paths: bool = True,
     basis_scaling: ScalingMode = "raw",
     write_plot: bool = True,
 ) -> None:
     out, metadata, weighted_laguerre, hermite = run_baselines(
         seed=seed,
+        n_paths=n_paths,
         fit_all_paths=fit_all_paths,
         basis_scaling=basis_scaling,
         store_fits=True,
@@ -175,14 +185,14 @@ def main(
     if not write_plot:
         return
 
-    from kanop.plotting import plot_american_put_continuation
+    configure_matplotlib_cache()
+    from kanop.plotting import plot_american_put_continuation_steps
 
-    plot_path = FIGURES / "american_put_continuation_laguerre_hermite.png"
     cfg = metadata["config"]
     paths = metadata["paths"]
     times = metadata["times"]
     scaler = metadata["scaler"]
-    plot_american_put_continuation(
+    plot_paths = plot_american_put_continuation_steps(
         paths=paths,
         times=times,
         fits_by_name={
@@ -194,16 +204,33 @@ def main(
         r=cfg.r,
         sigma=cfg.sigma,
         q=cfg.q,
-        steps_to_plot=(49, 25, 1),
-        output_path=str(plot_path),
+        steps_to_plot=PLOT_STEPS,
+        output_dir=FIGURES,
         feature_transform=scaler.transform,
     )
-    print(f"Wrote {plot_path}")
+    for plot_path in plot_paths:
+        print(f"Wrote {plot_path}")
+
+
+def configure_matplotlib_cache() -> None:
+    """Point Matplotlib/font caches at writable project-local directories."""
+    mpl_config = ROOT / ".matplotlib_cache"
+    xdg_cache = ROOT / ".cache"
+    fallback_home = xdg_cache / "home"
+    for path in (mpl_config, xdg_cache, fallback_home):
+        path.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("MPLCONFIGDIR", str(mpl_config))
+    os.environ.setdefault("XDG_CACHE_HOME", str(xdg_cache))
+    # Some sandboxed/local environments report the real home as writable but
+    # still block Matplotlib/fontconfig cache writes. This process-local HOME
+    # keeps plot generation deterministic without touching user-level caches.
+    os.environ["HOME"] = str(fallback_home)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=int, default=1234)
+    parser.add_argument("--n-paths", type=int, default=None)
     parser.add_argument("--basis-scaling", choices=["raw", "S_over_K", "S_over_S0", "standardized"], default="raw")
     parser.add_argument(
         "--fit-itm-only",
@@ -217,6 +244,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     main(
         seed=args.seed,
+        n_paths=args.n_paths,
         fit_all_paths=not args.fit_itm_only,
         basis_scaling=args.basis_scaling,
         write_plot=not args.skip_plot,

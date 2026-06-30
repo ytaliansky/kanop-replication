@@ -27,6 +27,7 @@ class TimeStepFit:
     regressor: Regressor
     fit_all_paths: bool
     fit_mask: Array
+    x_all: Array
     x_train: Array
     y_train: Array
     y_all: Array
@@ -76,8 +77,9 @@ def lsmc_price(
             appears to use all paths in some continuation fits, especially for
             delta-related diagnostics, but ITM-only fitting materially changes
             prices. Experiment scripts expose and record this choice.
-        store_fits: store trained regressors, fit masks, continuation
-            predictions, exercise decisions, and cashflow-time diagnostics.
+        store_fits: store trained regressors, full and masked state values,
+            regression targets, fit masks, continuation predictions, exercise
+            decisions, and cashflow-time diagnostics.
     """
     paths = np.asarray(paths, dtype=float)
     times = np.asarray(times, dtype=float)
@@ -134,6 +136,7 @@ def lsmc_price(
                     regressor=regressor,
                     fit_all_paths=fit_all_paths,
                     fit_mask=fit_mask.copy(),
+                    x_all=x_all.copy(),
                     x_train=x_train.copy(),
                     y_train=y_train.copy(),
                     y_all=y_all.copy(),

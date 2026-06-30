@@ -87,5 +87,7 @@ def test_lsmc_store_fits_keeps_step_diagnostics():
     first_fit = result.fits[0]
     assert first_fit.fit_all_paths is True
     assert first_fit.fit_mask.shape == (cfg.n_paths,)
+    assert first_fit.x_all.shape == (cfg.n_paths, 1)
+    assert first_fit.x_train.shape == (cfg.n_paths, 1)
     assert first_fit.y_all.shape == (cfg.n_paths,)
     assert first_fit.cashflow_time.shape == (cfg.n_paths,)
