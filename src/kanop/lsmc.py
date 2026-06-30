@@ -25,26 +25,32 @@ class TimeStepFit:
     step: int
     time: float
     regressor: Regressor
+    fit_all_paths: bool
+    fit_mask: Array
     x_train: Array
     y_train: Array
+    y_all: Array
     continuation_pred: Array
     intrinsic: Array
     exercise: Array
+    cashflow_time: Array
 
 
 @dataclass
 class LSMCResult:
     price: float
+    n_steps: int
+    fit_all_paths: bool
     cashflow: Array
     exercise_step: Array
+    exercise_time: Array
     discounted_cashflow: Array
     fits: list[TimeStepFit] = field(default_factory=list)
 
     @property
     def exercise_frequency(self) -> float:
         """Fraction of paths exercised before maturity."""
-        maturity_step = int(np.max(self.exercise_step))
-        return float(np.mean(self.exercise_step < maturity_step))
+        return float(np.mean(self.exercise_step < self.n_steps))
 
 
 def lsmc_price(
@@ -66,10 +72,12 @@ def lsmc_price(
         intrinsic_fn: returns intrinsic values at a step.
         feature_fn: returns regression state/features at a step.
         regressor_factory: creates a fresh model per time step.
-        fit_all_paths: if False, fit only paths currently ITM. The KANOP paper's
-            American-put baseline explicitly fits all simulated paths including
-            OTM paths, so experiments default to True.
-        store_fits: store regressors and diagnostic arrays for plotting.
+        fit_all_paths: if False, fit only paths currently ITM. The KANOP paper
+            appears to use all paths in some continuation fits, especially for
+            delta-related diagnostics, but ITM-only fitting materially changes
+            prices. Experiment scripts expose and record this choice.
+        store_fits: store trained regressors, fit masks, continuation
+            predictions, exercise decisions, and cashflow-time diagnostics.
     """
     paths = np.asarray(paths, dtype=float)
     times = np.asarray(times, dtype=float)
@@ -124,19 +132,27 @@ def lsmc_price(
                     step=k,
                     time=float(times[k]),
                     regressor=regressor,
+                    fit_all_paths=fit_all_paths,
+                    fit_mask=fit_mask.copy(),
                     x_train=x_train.copy(),
                     y_train=y_train.copy(),
+                    y_all=y_all.copy(),
                     continuation_pred=continuation.copy(),
                     intrinsic=intrinsic.copy(),
                     exercise=exercise.copy(),
+                    cashflow_time=times[exercise_step].copy(),
                 )
             )
 
-    discounted = cashflow * np.exp(-r * times[exercise_step])
+    exercise_time = times[exercise_step]
+    discounted = cashflow * np.exp(-r * exercise_time)
     return LSMCResult(
         price=float(np.mean(discounted)),
+        n_steps=n_steps,
+        fit_all_paths=fit_all_paths,
         cashflow=cashflow,
         exercise_step=exercise_step,
+        exercise_time=exercise_time,
         discounted_cashflow=discounted,
         fits=fits,
     )

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Callable
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -19,6 +21,7 @@ def plot_american_put_continuation(
     q: float,
     steps_to_plot: tuple[int, ...],
     output_path: str,
+    feature_transform: Callable[[np.ndarray], np.ndarray] | None = None,
 ) -> None:
     """Plot fitted continuation curves against Black-Scholes European put curves."""
     # One figure with one panel per requested time step. This helper is for quick
@@ -40,7 +43,10 @@ def plot_american_put_continuation(
             if not matching:
                 continue
             fit = matching[0]
-            pred = fit.regressor.predict(grid[:, None])
+            x_grid = grid[:, None]
+            if feature_transform is not None:
+                x_grid = feature_transform(x_grid)
+            pred = fit.regressor.predict(x_grid)
             ax.plot(grid, pred, label=name)
 
         ax.set_title(f"Continuation approximation at step t_{step}")

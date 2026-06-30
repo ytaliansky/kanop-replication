@@ -59,3 +59,15 @@ Parameters vary by case. Use Laguerre cross-products up to total degree 4 in `[S
 4. Add KAN regressor with `fit/predict` API.
 5. Add autograd delta at `t_1`.
 6. Add seed-stability runs.
+
+## Reproducibility switches
+
+The baseline scripts default to fitting continuation regressions on all paths.
+This is consistent with parts of the paper's continuation/delta discussion, but
+ITM-only fitting is a standard LSMC variant and materially changes prices. Use
+`--fit-itm-only` to run that variant; the result CSVs record the setting.
+
+Fixed-basis inputs default to raw state variables, preserving the initial
+implementation. Because high-order Laguerre/Hermite terms are sensitive to input
+scale, scripts also expose `--basis-scaling raw|S_over_K|S_over_S0|standardized`.
+The result CSVs record the chosen scaling mode.
