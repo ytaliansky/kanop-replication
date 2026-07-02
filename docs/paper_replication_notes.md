@@ -41,6 +41,9 @@ Implemented starting point:
 - Hermite with `H_0..H_5`.
 - Reusable PyTorch MLP regressor with Adam/MSE training, SiLU activation, and
   internal input/target normalization.
+- Reusable PyTorch KAN-style regressor with learnable piecewise-linear spline
+  edges, internal normalization, and differentiable `predict_torch`. This is a
+  minimal self-contained KAN implementation with a TODO for cubic B-splines.
 - American put MLP LSMC runner with default architecture `[1, 32, 32, 1]`.
 
 ## Asian-American call replication target
@@ -59,7 +62,7 @@ Parameters vary by case. Use Laguerre cross-products up to total degree 4 in `[S
 1. Verify that the path simulator reproduces terminal European/Eurasian MC prices.
 2. Tune whether regressions should use all paths or only ITM paths for each experiment.
 3. Add Asian-American MLP experiment runner and tune MLP hyperparameters/seeds.
-4. Add KAN regressor with `fit/predict` API.
+4. Add full American put KANOP experiment runner.
 5. Add autograd delta at `t_1`.
 6. Add seed-stability runs.
 

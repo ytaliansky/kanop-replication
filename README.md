@@ -17,6 +17,7 @@ The goal is to first reproduce the paper's LSMC baselines and benchmarks, then a
 - American put baseline experiment with weighted Laguerre and Hermite regressors
 - Asian-American call baseline experiment with Laguerre cross-product regressors
 - PyTorch MLP continuation-value regressor with NumPy and differentiable Torch prediction APIs
+- PyTorch KAN-style continuation-value regressor with piecewise-linear spline edges
 - American put MLP LSMC experiment runner
 - Result-table helpers and basic tests
 
@@ -24,7 +25,7 @@ The goal is to first reproduce the paper's LSMC baselines and benchmarks, then a
 
 - Asian-American MLP baseline experiment for `[2, 32, 32, 1]`
 - Paper-scale MLP hyperparameter tuning and seed-stability runs
-- PyTorch KAN regressor matching the paper's `[1, 3, 1]` and `[2, 5, 1]` KANOP models
+- Full KANOP experiment runners using `[1, 3, 1]` and `[2, 5, 1]`
 - Autograd-based delta calculation for trained neural regressors
 - KANOP/MLP continuation-value plots matching the paper's page-7 figures
 
@@ -66,6 +67,15 @@ python experiments/smoke_test_mlp_regressor.py
 
 This only verifies the neural regressor interface on a tiny LSMC problem; it is
 not intended to reproduce the paper's full MLP numbers.
+
+## Run KAN smoke test
+
+```bash
+python experiments/smoke_test_kan_regressor.py
+```
+
+This verifies the self-contained piecewise-linear KAN-style regressor on a small
+function fit and a tiny LSMC problem; it is not a full KANOP paper run.
 
 ## Run American put MLP experiment
 
