@@ -6,4 +6,5 @@ __all__ = [
     "payoffs",
     "basis",
     "lsmc",
+    "models",
 ]

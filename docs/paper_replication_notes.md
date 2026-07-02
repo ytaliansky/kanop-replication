@@ -39,6 +39,9 @@ Implemented starting point:
 
 - Weighted Laguerre with `L_0..L_5`, weighted by `exp(-x/2)`.
 - Hermite with `H_0..H_5`.
+- Reusable PyTorch MLP regressor with Adam/MSE training, SiLU activation, and
+  internal input/target normalization. Full paper-scale MLP runs are still a
+  later milestone.
 
 ## Asian-American call replication target
 
@@ -55,7 +58,7 @@ Parameters vary by case. Use Laguerre cross-products up to total degree 4 in `[S
 
 1. Verify that the path simulator reproduces terminal European/Eurasian MC prices.
 2. Tune whether regressions should use all paths or only ITM paths for each experiment.
-3. Add MLP regressor with `fit/predict` API.
+3. Add full paper-scale MLP experiment runners.
 4. Add KAN regressor with `fit/predict` API.
 5. Add autograd delta at `t_1`.
 6. Add seed-stability runs.

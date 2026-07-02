@@ -16,14 +16,15 @@ The goal is to first reproduce the paper's LSMC baselines and benchmarks, then a
 - Generic LSMC backward-induction engine
 - American put baseline experiment with weighted Laguerre and Hermite regressors
 - Asian-American call baseline experiment with Laguerre cross-product regressors
+- PyTorch MLP continuation-value regressor with NumPy and differentiable Torch prediction APIs
 - Result-table helpers and basic tests
 
 ## What is intentionally left as next-step TODOs
 
-- PyTorch MLP regressor matching the paper's `[1, 32, 32, 1]` and `[2, 32, 32, 1]` models
+- Full paper-scale MLP baseline experiment runs for `[1, 32, 32, 1]` and `[2, 32, 32, 1]`
 - PyTorch KAN regressor matching the paper's `[1, 3, 1]` and `[2, 5, 1]` KANOP models
 - Autograd-based delta calculation for trained neural regressors
-- Exact continuation-value plots matching the paper's page-7 figures
+- KANOP/MLP continuation-value plots matching the paper's page-7 figures
 
 ## Setup
 
@@ -50,8 +51,19 @@ This writes:
 
 ```text
 results/american_put_baselines.csv
-figures/american_put_continuation_laguerre_hermite.png
+figures/american_put_continuation_baselines_t49.png
+figures/american_put_continuation_baselines_t25.png
+figures/american_put_continuation_baselines_t1.png
 ```
+
+## Run MLP smoke test
+
+```bash
+python experiments/smoke_test_mlp_regressor.py
+```
+
+This only verifies the neural regressor interface on a tiny LSMC problem; it is
+not intended to reproduce the paper's full MLP numbers.
 
 ## Run Asian-American baseline experiment
 
