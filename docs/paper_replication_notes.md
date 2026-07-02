@@ -45,6 +45,7 @@ Implemented starting point:
   edges, internal normalization, and differentiable `predict_torch`. This is a
   minimal self-contained KAN implementation with a TODO for cubic B-splines.
 - American put MLP LSMC runner with default architecture `[1, 32, 32, 1]`.
+- American put KANOP LSMC runner with default architecture `[1, 3, 1]`.
 
 ## Asian-American call replication target
 
@@ -62,7 +63,7 @@ Parameters vary by case. Use Laguerre cross-products up to total degree 4 in `[S
 1. Verify that the path simulator reproduces terminal European/Eurasian MC prices.
 2. Tune whether regressions should use all paths or only ITM paths for each experiment.
 3. Add Asian-American MLP experiment runner and tune MLP hyperparameters/seeds.
-4. Add full American put KANOP experiment runner.
+4. Tune American put KANOP hyperparameters/seeds and compare spline choices.
 5. Add autograd delta at `t_1`.
 6. Add seed-stability runs.
 
@@ -77,3 +78,12 @@ Fixed-basis inputs default to raw state variables, preserving the initial
 implementation. Because high-order Laguerre/Hermite terms are sensitive to input
 scale, scripts also expose `--basis-scaling raw|S_over_K|S_over_S0|standardized`.
 The result CSVs record the chosen scaling mode.
+
+## KANOP implementation caveats
+
+The paper does not specify random seed, optimizer, epochs, learning rate, KAN
+grid size, spline order, or normalization. This repository's first KANOP runner
+uses a self-contained piecewise-linear spline-edge KAN rather than an external
+or original cubic/B-spline KAN implementation. Differences from the reported
+KANOP price should therefore be interpreted as implementation and
+hyperparameter gaps, not as calibrated paper reproduction.

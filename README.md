@@ -19,13 +19,15 @@ The goal is to first reproduce the paper's LSMC baselines and benchmarks, then a
 - PyTorch MLP continuation-value regressor with NumPy and differentiable Torch prediction APIs
 - PyTorch KAN-style continuation-value regressor with piecewise-linear spline edges
 - American put MLP LSMC experiment runner
+- American put KANOP LSMC experiment runner
 - Result-table helpers and basic tests
 
 ## What is intentionally left as next-step TODOs
 
 - Asian-American MLP baseline experiment for `[2, 32, 32, 1]`
 - Paper-scale MLP hyperparameter tuning and seed-stability runs
-- Full KANOP experiment runners using `[1, 3, 1]` and `[2, 5, 1]`
+- Asian-American KANOP experiment runner using `[2, 5, 1]`
+- KANOP hyperparameter tuning and cubic/B-spline upgrade investigation
 - Autograd-based delta calculation for trained neural regressors
 - KANOP/MLP continuation-value plots matching the paper's page-7 figures
 
@@ -76,6 +78,20 @@ python experiments/smoke_test_kan_regressor.py
 
 This verifies the self-contained piecewise-linear KAN-style regressor on a small
 function fit and a tiny LSMC problem; it is not a full KANOP paper run.
+
+## Run American put KANOP experiment
+
+```bash
+python experiments/run_american_put_kanop.py --n-paths 2000 --epochs 50 --seed 1234 --skip-plot
+```
+
+Omit `--skip-plot` to write:
+
+```text
+figures/american_put_continuation_kanop_t49.png
+figures/american_put_continuation_kanop_t25.png
+figures/american_put_continuation_kanop_t1.png
+```
 
 ## Run American put MLP experiment
 
