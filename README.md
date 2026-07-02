@@ -17,11 +17,13 @@ The goal is to first reproduce the paper's LSMC baselines and benchmarks, then a
 - American put baseline experiment with weighted Laguerre and Hermite regressors
 - Asian-American call baseline experiment with Laguerre cross-product regressors
 - PyTorch MLP continuation-value regressor with NumPy and differentiable Torch prediction APIs
+- American put MLP LSMC experiment runner
 - Result-table helpers and basic tests
 
 ## What is intentionally left as next-step TODOs
 
-- Full paper-scale MLP baseline experiment runs for `[1, 32, 32, 1]` and `[2, 32, 32, 1]`
+- Asian-American MLP baseline experiment for `[2, 32, 32, 1]`
+- Paper-scale MLP hyperparameter tuning and seed-stability runs
 - PyTorch KAN regressor matching the paper's `[1, 3, 1]` and `[2, 5, 1]` KANOP models
 - Autograd-based delta calculation for trained neural regressors
 - KANOP/MLP continuation-value plots matching the paper's page-7 figures
@@ -64,6 +66,20 @@ python experiments/smoke_test_mlp_regressor.py
 
 This only verifies the neural regressor interface on a tiny LSMC problem; it is
 not intended to reproduce the paper's full MLP numbers.
+
+## Run American put MLP experiment
+
+```bash
+python experiments/run_american_put_mlp.py --n-paths 2000 --epochs 20 --seed 1234 --skip-plot
+```
+
+Omit `--skip-plot` to write:
+
+```text
+figures/american_put_continuation_mlp_t49.png
+figures/american_put_continuation_mlp_t25.png
+figures/american_put_continuation_mlp_t1.png
+```
 
 ## Run Asian-American baseline experiment
 

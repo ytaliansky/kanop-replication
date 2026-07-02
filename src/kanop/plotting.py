@@ -117,6 +117,7 @@ def plot_american_put_continuation_steps(
     steps_to_plot: tuple[int, ...],
     output_dir: str | Path,
     feature_transform: Callable[[np.ndarray], np.ndarray] | None = None,
+    filename_template: str = "american_put_continuation_baselines_t{step}.png",
 ) -> list[Path]:
     """Save one continuation plot per requested exercise step."""
     output_dir = Path(output_dir)
@@ -131,7 +132,7 @@ def plot_american_put_continuation_steps(
             r=r,
             sigma=sigma,
             q=q,
-            output_path=output_dir / f"american_put_continuation_baselines_t{step}.png",
+            output_path=output_dir / filename_template.format(step=step),
             feature_transform=feature_transform,
         )
         for step in steps_to_plot
