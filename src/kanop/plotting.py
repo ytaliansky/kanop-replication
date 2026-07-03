@@ -65,6 +65,7 @@ def plot_american_put_continuation_step(
     q: float,
     output_path: str | Path,
     feature_transform: Callable[[np.ndarray], np.ndarray] | None = None,
+    feature_transforms_by_name: dict[str, Callable[[np.ndarray], np.ndarray] | None] | None = None,
     n_grid: int = 300,
 ) -> Path:
     """Save a paper-style continuation plot for one exercise step."""
@@ -85,8 +86,11 @@ def plot_american_put_continuation_step(
     for name, result in fits_by_name.items():
         fit = _fit_for_step(result, step)
         x_grid = grid[:, None]
-        if feature_transform is not None:
-            x_grid = feature_transform(x_grid)
+        transform = feature_transform
+        if feature_transforms_by_name is not None and name in feature_transforms_by_name:
+            transform = feature_transforms_by_name[name]
+        if transform is not None:
+            x_grid = transform(x_grid)
         pred = np.asarray(fit.regressor.predict(x_grid), dtype=float).reshape(-1)
         ax.plot(grid, pred, label=name, linewidth=1.8)
 
@@ -117,6 +121,7 @@ def plot_american_put_continuation_steps(
     steps_to_plot: tuple[int, ...],
     output_dir: str | Path,
     feature_transform: Callable[[np.ndarray], np.ndarray] | None = None,
+    feature_transforms_by_name: dict[str, Callable[[np.ndarray], np.ndarray] | None] | None = None,
     filename_template: str = "american_put_continuation_baselines_t{step}.png",
 ) -> list[Path]:
     """Save one continuation plot per requested exercise step."""
@@ -134,6 +139,7 @@ def plot_american_put_continuation_steps(
             q=q,
             output_path=output_dir / filename_template.format(step=step),
             feature_transform=feature_transform,
+            feature_transforms_by_name=feature_transforms_by_name,
         )
         for step in steps_to_plot
     ]
