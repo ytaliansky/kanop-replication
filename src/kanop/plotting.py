@@ -66,6 +66,7 @@ def plot_american_put_continuation_step(
     output_path: str | Path,
     feature_transform: Callable[[np.ndarray], np.ndarray] | None = None,
     feature_transforms_by_name: dict[str, Callable[[np.ndarray], np.ndarray] | None] | None = None,
+    reference_label: str = "Black-Scholes continuation",
     n_grid: int = 300,
 ) -> Path:
     """Save a paper-style continuation plot for one exercise step."""
@@ -81,7 +82,7 @@ def plot_american_put_continuation_step(
     )
 
     fig, ax = plt.subplots(figsize=(7.0, 4.5))
-    ax.plot(grid, true_vals, label="Black-Scholes continuation", color="black", linewidth=2.0)
+    ax.plot(grid, true_vals, label=reference_label, color="black", linewidth=2.0)
 
     for name, result in fits_by_name.items():
         fit = _fit_for_step(result, step)
@@ -122,6 +123,7 @@ def plot_american_put_continuation_steps(
     output_dir: str | Path,
     feature_transform: Callable[[np.ndarray], np.ndarray] | None = None,
     feature_transforms_by_name: dict[str, Callable[[np.ndarray], np.ndarray] | None] | None = None,
+    reference_label: str = "Black-Scholes continuation",
     filename_template: str = "american_put_continuation_baselines_t{step}.png",
 ) -> list[Path]:
     """Save one continuation plot per requested exercise step."""
@@ -140,6 +142,7 @@ def plot_american_put_continuation_steps(
             output_path=output_dir / filename_template.format(step=step),
             feature_transform=feature_transform,
             feature_transforms_by_name=feature_transforms_by_name,
+            reference_label=reference_label,
         )
         for step in steps_to_plot
     ]

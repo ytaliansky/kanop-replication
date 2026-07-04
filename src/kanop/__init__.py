@@ -2,6 +2,7 @@
 
 __all__ = [
     "black_scholes",
+    "binomial",
     "simulation",
     "payoffs",
     "basis",
