@@ -14,6 +14,7 @@ from kanop.models import TorchKANRegressor
 
 EXPECTED_COLUMNS = [
     "model",
+    "r",
     "seed",
     "n_paths",
     "fit_all_paths",
@@ -31,6 +32,15 @@ EXPECTED_COLUMNS = [
     "runtime_seconds",
 ]
 
+DELTA_COLUMNS = [
+    "estimated_delta",
+    "black_scholes_exact_delta",
+    "paper_delta_target",
+    "abs_error_vs_exact_bs_delta",
+    "abs_error_vs_paper_delta",
+    "t1_model_price_used_for_delta",
+]
+
 
 def test_american_put_kanop_result_row_has_expected_columns():
     row = american_put_kanop_result_row(
@@ -42,6 +52,7 @@ def test_american_put_kanop_result_row_has_expected_columns():
         epochs=200,
         learning_rate=5e-3,
         batch_size=2048,
+        r=0.0,
         price=0.142,
         black_scholes_target=0.1421,
         paper_model_price=0.1427,
@@ -88,6 +99,7 @@ def test_american_put_kanop_results_csv_has_expected_columns(tmp_path):
         epochs=1,
         learning_rate=1e-2,
         batch_size=10,
+        r=0.0,
         price=0.1,
         black_scholes_target=0.1421,
         paper_model_price=0.1427,
@@ -98,3 +110,23 @@ def test_american_put_kanop_results_csv_has_expected_columns(tmp_path):
     loaded = pd.read_csv(out_path)
     assert list(loaded.columns) == EXPECTED_COLUMNS
     assert loaded.loc[0, "model"] == "KANOP LSMC"
+
+
+def test_american_put_kanop_compute_delta_adds_expected_columns():
+    out, metadata, result = run_kanop_experiment(
+        seed=1234,
+        n_paths=80,
+        architecture=(1, 3, 1),
+        grid_size=6,
+        epochs=1,
+        learning_rate=1e-2,
+        batch_size=80,
+        fit_all_paths=True,
+        compute_delta=True,
+    )
+
+    assert list(out.columns) == EXPECTED_COLUMNS + DELTA_COLUMNS
+    assert out.loc[0, "r"] == 0.0
+    assert pd.notna(out.loc[0, "estimated_delta"])
+    assert pd.notna(out.loc[0, "t1_model_price_used_for_delta"])
+    assert len(result.fits) == metadata["config"].n_steps - 1

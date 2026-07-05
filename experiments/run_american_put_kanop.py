@@ -21,8 +21,9 @@ if str(SRC) not in sys.path:
 
 import pandas as pd
 
-from kanop.black_scholes import bs_price
+from kanop.black_scholes import bs_delta, bs_price
 from kanop.config import AmericanPutConfig
+from kanop.delta import DeltaDiagnostics, delta_from_t1_continuation_model, first_step_standard_normals_from_paths
 from kanop.lsmc import LSMCResult, lsmc_price
 from kanop.metrics import absolute_error, relative_error
 from kanop.models import TorchKANRegressor
@@ -60,13 +61,18 @@ def american_put_kanop_result_row(
     epochs: int,
     learning_rate: float,
     batch_size: int,
+    r: float,
     price: float,
     black_scholes_target: float,
     paper_model_price: float,
     runtime_seconds: float,
+    delta_diagnostics: DeltaDiagnostics | None = None,
+    black_scholes_exact_delta: float | None = None,
+    paper_delta_target: float | None = None,
 ) -> dict[str, float | int | str | bool]:
-    return {
+    row = {
         "model": "KANOP LSMC",
+        "r": r,
         "seed": seed,
         "n_paths": n_paths,
         "fit_all_paths": fit_all_paths,
@@ -83,6 +89,21 @@ def american_put_kanop_result_row(
         "difference_from_paper_model": price - paper_model_price,
         "runtime_seconds": runtime_seconds,
     }
+    if delta_diagnostics is not None:
+        row.update(
+            {
+                "estimated_delta": delta_diagnostics.delta,
+                "black_scholes_exact_delta": black_scholes_exact_delta,
+                "paper_delta_target": paper_delta_target,
+                "abs_error_vs_exact_bs_delta": absolute_error(
+                    delta_diagnostics.delta,
+                    black_scholes_exact_delta,
+                ),
+                "abs_error_vs_paper_delta": absolute_error(delta_diagnostics.delta, paper_delta_target),
+                "t1_model_price_used_for_delta": delta_diagnostics.model_price_from_t1,
+            }
+        )
+    return row
 
 
 def run_kanop_experiment(
@@ -97,8 +118,10 @@ def run_kanop_experiment(
     weight_decay: float = 0.0,
     device: str = "cpu",
     fit_all_paths: bool = True,
+    r: float = AmericanPutConfig().r,
+    compute_delta: bool = False,
 ) -> tuple[pd.DataFrame, dict[str, object], LSMCResult]:
-    cfg = AmericanPutConfig(n_paths=n_paths or AmericanPutConfig().kanop_n_paths)
+    cfg = AmericanPutConfig(n_paths=n_paths or AmericanPutConfig().kanop_n_paths, r=r)
     paths, times = simulate_gbm_paths(
         s0=cfg.s0,
         maturity_years=cfg.maturity_years,
@@ -139,6 +162,14 @@ def run_kanop_experiment(
     runtime_seconds = time.perf_counter() - start
 
     bs_p = bs_price(cfg.s0, cfg.strike, cfg.maturity_years, cfg.r, cfg.sigma, "put", q=cfg.q)
+    delta_diagnostics = compute_delta_diagnostics(
+        metadata_paths=paths,
+        times=times,
+        result=kanop_result,
+        cfg=cfg,
+        device=device,
+    ) if compute_delta else None
+    bs_exact_delta = bs_delta(cfg.s0, cfg.strike, cfg.maturity_years, cfg.r, cfg.sigma, "put", q=cfg.q)
     row = american_put_kanop_result_row(
         seed=seed,
         n_paths=cfg.n_paths,
@@ -148,10 +179,14 @@ def run_kanop_experiment(
         epochs=epochs,
         learning_rate=learning_rate,
         batch_size=batch_size,
+        r=cfg.r,
         price=kanop_result.price,
         black_scholes_target=bs_p,
         paper_model_price=cfg.paper_model_targets["kanop"].price,
         runtime_seconds=runtime_seconds,
+        delta_diagnostics=delta_diagnostics,
+        black_scholes_exact_delta=bs_exact_delta if delta_diagnostics is not None else None,
+        paper_delta_target=cfg.paper_bs_delta if delta_diagnostics is not None else None,
     )
     metadata = {
         "paths": paths,
@@ -163,6 +198,40 @@ def run_kanop_experiment(
         "device": device,
     }
     return pd.DataFrame([row]), metadata, kanop_result
+
+
+def compute_delta_diagnostics(
+    *,
+    metadata_paths,
+    times,
+    result: LSMCResult,
+    cfg: AmericanPutConfig,
+    device: str,
+) -> DeltaDiagnostics:
+    t1_fits = [fit for fit in result.fits if fit.step == 1]
+    if not t1_fits:
+        raise ValueError("no stored t1 diagnostic fit is available for delta estimation")
+    dt = float(times[1] - times[0])
+    z_t1 = first_step_standard_normals_from_paths(
+        metadata_paths,
+        s0=cfg.s0,
+        sigma=cfg.sigma,
+        r=cfg.r,
+        q=cfg.q,
+        dt=dt,
+    )
+    return delta_from_t1_continuation_model(
+        t1_fits[0].regressor,
+        z_t1=z_t1,
+        s0=cfg.s0,
+        strike=cfg.strike,
+        sigma=cfg.sigma,
+        r=cfg.r,
+        q=cfg.q,
+        dt=dt,
+        device=device,
+        return_diagnostics=True,
+    )
 
 
 def write_results(out: pd.DataFrame, output_path: str | Path = RESULTS / "american_put_kanop.csv") -> Path:
@@ -217,6 +286,8 @@ def main(
     device: str,
     fit_all_paths: bool,
     write_plot: bool,
+    r: float,
+    compute_delta: bool,
 ) -> None:
     out, metadata, kanop_result = run_kanop_experiment(
         seed=seed,
@@ -229,6 +300,8 @@ def main(
         weight_decay=weight_decay,
         device=device,
         fit_all_paths=fit_all_paths,
+        r=r,
+        compute_delta=compute_delta,
     )
     out_path = write_results(out)
     print(out.to_string(index=False))
@@ -256,6 +329,8 @@ if __name__ == "__main__":
     parser.add_argument("--weight-decay", type=float, default=0.0)
     parser.add_argument("--grid-size", type=int, default=10)
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--r", type=float, default=cfg.r)
+    parser.add_argument("--compute-delta", action="store_true")
     parser.add_argument(
         "--fit-itm-only",
         action="store_true",
@@ -275,4 +350,6 @@ if __name__ == "__main__":
         device=args.device,
         fit_all_paths=not args.fit_itm_only,
         write_plot=not args.skip_plot,
+        r=args.r,
+        compute_delta=args.compute_delta,
     )

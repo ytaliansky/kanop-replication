@@ -14,6 +14,7 @@ from kanop.models import TorchMLPRegressor
 
 EXPECTED_COLUMNS = [
     "model",
+    "r",
     "seed",
     "n_paths",
     "fit_all_paths",
@@ -40,6 +41,7 @@ def test_american_put_mlp_result_row_has_expected_columns():
         epochs=20,
         learning_rate=1e-3,
         batch_size=256,
+        r=0.0,
         price=0.14,
         black_scholes_target=0.1421,
         paper_model_price=0.1384,
@@ -82,6 +84,7 @@ def test_american_put_mlp_results_csv_has_expected_columns(tmp_path):
         epochs=1,
         learning_rate=1e-2,
         batch_size=10,
+        r=0.0,
         price=0.1,
         black_scholes_target=0.1421,
         paper_model_price=0.1384,
